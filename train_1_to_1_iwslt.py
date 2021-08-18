@@ -1,4 +1,4 @@
-
+# -*- coding:utf-8 -*-
 import numpy as np
 import pickle
 from tqdm import tqdm
@@ -297,7 +297,8 @@ if __name__ == '__main__':
     # NOTE bert-based-chinese tokenizer
     # tokenizer = BertTokenizer.from_pretrained('./models/bert_base_chinese/', do_lower_case=True)
     # NOTE chinese-roberta-tokenizer
-    tokenizer = BertTokenizer.from_pretrained('./models/chinese-roberta-wwm-ext', do_lower_case=True)
+    # tokenizer = BertTokenizer.from_pretrained('./models/chinese-roberta-wwm-ext', do_lower_case=True)
+    tokenizer = BertTokenizer.from_pretrained('./models/bert-base-chinese/', do_lower_case=True)
 
     print('PREPROCESSING DATA...')
     X_train, y_train = preprocess_data(data_train, tokenizer, punctuation_enc, seq_len)
@@ -412,11 +413,11 @@ if __name__ == '__main__':
     #     print("FUCKINHG********code")
     #     bert_punc = BertChineseRNNnewLinearPunc(seq_len, output_size, dropout, None)
     # # NOTE Bert-Chinese-Linear
-    if CUDA:
-        bert_punc = BertChineseLinearPunc(seq_len, output_size, dropout, None).cuda()
-    else:
-        print("FUCKINHG********code")
-        bert_punc = BertChineseLinearPunc(seq_len, output_size, dropout, None)
+    # if CUDA:
+    #     bert_punc = BertChineseLinearPunc(seq_len, output_size, dropout, None).cuda()
+    # else:
+    #     print("FUCKINHG********code")
+    #     bert_punc = BertChineseLinearPunc(seq_len, output_size, dropout, None)
     # # NOTE Bert-Chinese-Linear-no-BN
     # if CUDA:
     #     bert_punc = BertChineseRNNnoBnLinearPunc(seq_len, output_size, dropout, None).cuda()
@@ -505,11 +506,11 @@ if __name__ == '__main__':
     #     print("FUCKINHG********code")
     #     bert_punc = BertChineseEmbSlimCNNBert(seq_len, output_size, dropout, None)
     # # NOTE BertChineseEmbSlimCNNBert
-    # if CUDA:
-    #     bert_punc = BertChineseEmbSlimCNNlstmBert(seq_len, output_size, dropout, None).cuda()
-    # else:
-    #     print("FUCKINHG********code")
-    #     bert_punc = BertChineseEmbSlimCNNlstmBert(seq_len, output_size, dropout, None)
+    if CUDA:
+        bert_punc = BertChineseEmbSlimCNNlstmBert(seq_len, output_size, dropout, None).cuda()
+    else:
+        print("FUCKINHG********code")
+        bert_punc = BertChineseEmbSlimCNNlstmBert(seq_len, output_size, dropout, None)
     # # NOTE BertChineseEmbSlimCNNlstmBertLSTM
     # if CUDA:
     #     bert_punc = BertChineseEmbSlimCNNlstmBertLSTM(seq_len, output_size, dropout, None).cuda()

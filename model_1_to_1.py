@@ -2010,9 +2010,12 @@ class BertChineseRNNnoBnLinearPunc(nn.Module):
 
 class BertChineseLinearPunc(nn.Module):
     def __init__(self, segment_size, output_size, dropout, vocab_size):
+        """
+        最基础模型, bert+dropout+FC
+        """
         super(BertChineseLinearPunc, self).__init__()
         print("fucking code**************")
-        self.bert = AutoModel.from_pretrained('./models/bert_base_chinese/')
+        self.bert = AutoModel.from_pretrained('./models/bert-base-chinese/')
         # self.bert_vocab_size = vocab_size
         # self.bn = nn.BatchNorm1d(segment_size*self.bert_vocab_size)
         # self.fc = nn.Linear(segment_size*self.bert_vocab_size, output_size)
@@ -2036,6 +2039,10 @@ class BertChineseLinearPunc(nn.Module):
 
 class RobertaChineseLinearPunc(nn.Module):
     def __init__(self, segment_size, output_size, dropout, vocab_size):
+        """
+        BERT 替换为 RoBert
+        """
+
         super(RobertaChineseLinearPunc, self).__init__()
         print("fucking code**************")
         self.bert = BertModel.from_pretrained('./models/chinese-roberta-wwm-ext/')
@@ -2094,6 +2101,9 @@ class BertChineseSegHiddenLinearPunc(nn.Module):
 
 class RobertaLstmChineseSegBertLinearPunc(nn.Module):
     def __init__(self, segment_size, output_size, dropout, vocab_size):
+        """
+        BERT+BiLSTM+FC
+        """
         super(RobertaLstmChineseSegBertLinearPunc, self).__init__()
         print("fucking code**************")
         self.bert = BertModel.from_pretrained('./models/chinese-roberta-wwm-ext/')
@@ -3238,8 +3248,8 @@ class BertChineseEmbSlimCNNlstmBert(nn.Module):
     def __init__(self, segment_size, output_size, dropout, vocab_size):
         super(BertChineseEmbSlimCNNlstmBert, self).__init__()
         print("fucking code**************")
-        self.bert = BertModel.from_pretrained('./models/bert_base_chinese/')
-        self.bert_2 = BertModel.from_pretrained('./models/bert_base_chinese/')
+        self.bert = BertModel.from_pretrained('./models/bert-base-chinese/')
+        self.bert_2 = BertModel.from_pretrained('./models/bert-base-chinese/')
         # self.bert_vocab_size = vocab_size
         # self.bn = nn.BatchNorm1d(segment_size*self.bert_vocab_size)
         # self.fc = nn.Linear(segment_size*self.bert_vocab_size, output_size)
@@ -3257,9 +3267,9 @@ class BertChineseEmbSlimCNNlstmBert(nn.Module):
             module_tmp = nn.ModuleDict({
                 'conv_w_{}'.format(i):
                 nn.Conv2d(1,
-                          self.cnn_filter_num,
-                          self.cnn_kernel_size,
-                          padding=((cnn_kernel_size[0] - 1) // 2,
+                          self.cnn_filter_num,  # 保证卷积之后维度和bert输出维度一致
+                          self.cnn_kernel_size, # 只在seq_len上滑动,卷积的是窗口内的字的字向量
+                          padding=((cnn_kernel_size[0] - 1) // 2, # 1代表padding只在seq_len上进行补一个0
                                    0)),
                 'conv_v_{}'.format(i):
                 nn.Conv2d(1,
@@ -3285,6 +3295,7 @@ class BertChineseEmbSlimCNNlstmBert(nn.Module):
         self.fc = nn.Linear(self.fc_size, output_size)
 
     def forward(self, x):
+        # bert输出的嵌入向量
         emb2 = self.bert_2(x)[0]
 
         input_ids = x
@@ -3347,22 +3358,25 @@ class BertChineseEmbSlimCNNlstmBert(nn.Module):
 
         # *************cnn*********
         # 加入了skip_gram
+        # todo 维度 预测时: embedding_out, torch.Size([1, 140, 768]),即(batch_size,seq_len,bert_embedding)
+        # todo skip_connection, cnn_out torch.Size([1, 1, 140, 768]), 即(batch_size,input_channel,seq_len,bert_embedding)
         skip_connection = embedding_output.unsqueeze(1)
         cnn_out = embedding_output.unsqueeze(1)
         # print()
         for i, conv_dict in enumerate(self.conv):
-            w = conv_dict['conv_w_{}'.format(i)](cnn_out)
-            v = conv_dict['conv_v_{}'.format(i)](cnn_out)
-            cnn_out = w * torch.sigmoid(v)
-            # 有bert_size个filter，拼成原来的size
+            w = conv_dict['conv_w_{}'.format(i)](cnn_out)   # torch.Size([1, 768, 140, 1]),  即(batch_size,output_channel,seq_len,1)
+            v = conv_dict['conv_v_{}'.format(i)](cnn_out)   # torch.Size([1, 768, 140, 1])
+            cnn_out = w * torch.sigmoid(v)  # torch.Size([1, 768, 140, 1])
+            # 有bert_size个filter，拼成原来的size; cnn_out[:,i_tmp,:,:], torch.Size([1, 140, 1])
             cnn_out = torch.cat([cnn_out[:, i_tmp, :, :] for i_tmp in range(self.cnn_filter_num)], dim=-1)
+            # torch.Size([1, 1, 140, 768])
             cnn_out = cnn_out.unsqueeze(1)
-            cnn_out = skip_connection + cnn_out
+            cnn_out = skip_connection + cnn_out # todo 每层?
             skip_connection = cnn_out
 
         # ******************cnn*****end***********
         output1 = cnn_out.squeeze(1)
-
+        # torch.Size([1, 140, 1536]), bilstm
         output1, _ = self.lstm_cnn(output1)
 
         # bert_2
@@ -3372,7 +3386,7 @@ class BertChineseEmbSlimCNNlstmBert(nn.Module):
 
         # 修改后
         # print('input 的shape', x.shape)
-
+        #  torch.Size([1, 140, 2304]) -> torch.Size([140, 2304])
         x = x.view(-1, x.shape[2])
 
         # x = self.fc(self.dropout(self.bn(x)))

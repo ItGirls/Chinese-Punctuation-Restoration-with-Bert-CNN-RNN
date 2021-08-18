@@ -2463,7 +2463,7 @@ class SegRobertaChineseLSTMLinearPunc(nn.Module):
 
         x, _ = self.lstm(x)
 
-        x = x.contiguous()
+        x = x.contiguous() # TODO
 
         x = x.view(-1, x.shape[2])
         # x = self.fc(self.dropout(self.bn(x)))
