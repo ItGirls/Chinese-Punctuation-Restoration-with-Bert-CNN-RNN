@@ -50,6 +50,9 @@ PUNCTUATION_DEC = {
 SEGMENT_SIZE = 200
 BATCH_SIZE = 200
 
+# TODO 模型限定了文本长度,那么文本长度过长时如何处理,直接截断?
+# TODO 训练时数据划分是按200的限定长度直接切分数据的,是否合理?因为截断时样本的最末尾可能不是句子的结尾.
+
 
 class PunctuationPredictModel:
     def __init__(self, gpu_id=0):
